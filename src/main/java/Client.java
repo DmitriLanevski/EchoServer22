@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketException;
 
 /**
  * Created by lanev_000 on 3.03.2016.
@@ -21,13 +20,12 @@ public class Client {
                 echo = dis.readUTF();
                 System.out.println(echo);
                 if (echo.equals("Close")){
-                    throw new IOException("Client closed.");
+                    System.out.println("Client closed.");
+                    break;
                 }
             }
-        } catch(SocketException SEe){
-            System.out.println("Connection was closed due server shut down.");
         } catch (IOException IOe) {
-            System.out.println(IOe);
+            throw new RuntimeException(IOe);
         }
     }
 }
