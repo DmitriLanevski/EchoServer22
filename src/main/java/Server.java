@@ -12,6 +12,7 @@ public class Server implements Runnable{
 
     private Socket clientSocket;
     private List<Socket> sList;
+    private final Object monitor = new Object();
 
     public Server(Socket clientSocket, List<Socket> sList) {
         this.clientSocket = clientSocket;
@@ -21,20 +22,25 @@ public class Server implements Runnable{
     @Override
     public void run() {
         System.out.println("Successfully connected to new client. Opening connection for new possible client..");
-        sList.add(clientSocket);
+        synchronized (monitor){sList.add(clientSocket);}
         try (DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
              DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream())){
             while (!clientSocket.isClosed()){
                 String buf = dis.readUTF();
                 dos.writeUTF(buf);
                 if (buf.equals("Close")){
-                    sList.remove(clientSocket);
+                    synchronized (monitor){sList.remove(clientSocket);}
                     clientSocket.close();
                     System.out.println("Connection is closed.");
                     break;
                 }
             }
         } catch (IOException IOe){
+            try {
+                clientSocket.close();
+            } catch (IOException e){
+                throw new RuntimeException(e);
+            }
             throw new RuntimeException(IOe);
         }
     }

@@ -6,7 +6,7 @@ import java.net.Socket;
  * Created by lanev_000 on 3.03.2016.
  */
 public class Client {
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException{
         try (Socket socket = new Socket(InetAddress.getLocalHost(), 1337);
              DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
              DataInputStream dis = new DataInputStream(socket.getInputStream());
@@ -24,8 +24,6 @@ public class Client {
                     break;
                 }
             }
-        } catch (IOException IOe) {
-            throw new RuntimeException(IOe);
         }
     }
 }
