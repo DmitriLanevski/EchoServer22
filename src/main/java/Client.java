@@ -12,9 +12,9 @@ public class Client {
              DataInputStream dis = new DataInputStream(socket.getInputStream());
              BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in))){
             System.out.println("Echo client opened.");
-            String userInput;
-            String echo;
             while(true){
+                String userInput;
+                String echo;
                 userInput = bufIn.readLine();
                 dos.writeUTF(userInput);
                 echo = dis.readUTF();

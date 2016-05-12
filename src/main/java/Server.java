@@ -12,11 +12,12 @@ public class Server implements Runnable{
 
     private Socket clientSocket;
     private List<Socket> sList;
-    private final Object monitor = new Object();
+    private final Object monitor;
 
-    public Server(Socket clientSocket, List<Socket> sList) {
+    public Server(Socket clientSocket, List<Socket> sList, Object monitor) {
         this.clientSocket = clientSocket;
         this.sList = sList;
+        this.monitor = monitor;
     }
 
     @Override
@@ -36,19 +37,21 @@ public class Server implements Runnable{
                 }
             }
         } catch (IOException IOe){
+            throw new RuntimeException(IOe);
+        } finally {
             try {
                 synchronized (monitor){sList.remove(clientSocket);}
                 clientSocket.close();
             } catch (IOException e){
                 throw new RuntimeException(e);
             }
-            throw new RuntimeException(IOe);
         }
     }
 
     public static void main(String[] args) throws IOException{
         try (ServerSocket serverSocket = new ServerSocket(1337)) {
             serverSocket.setSoTimeout(5000);
+            Object monitor = new Object();
             List<Socket> sList = new ArrayList<>();
             int i = 0;
             while (!serverSocket.isClosed()){
@@ -57,7 +60,7 @@ public class Server implements Runnable{
                         break;
                     }
                     Socket clientSocket = serverSocket.accept();
-                    Thread newServer = new Thread(new Server(clientSocket, sList));
+                    Thread newServer = new Thread(new Server(clientSocket, sList, monitor));
                     newServer.start();
                 } catch (SocketTimeoutException e){
                     System.out.println("New connection timeout. Trying to reconnect..");
