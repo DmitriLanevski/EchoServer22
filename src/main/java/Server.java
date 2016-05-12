@@ -37,6 +37,7 @@ public class Server implements Runnable{
             }
         } catch (IOException IOe){
             try {
+                synchronized (monitor){sList.remove(clientSocket);}
                 clientSocket.close();
             } catch (IOException e){
                 throw new RuntimeException(e);
@@ -46,22 +47,23 @@ public class Server implements Runnable{
     }
 
     public static void main(String[] args) throws IOException{
-        ServerSocket serverSocket = new ServerSocket(1337);
-        serverSocket.setSoTimeout(5000);
-        List<Socket> sList = new ArrayList<>();
-        int i = 0;
-        while (!serverSocket.isClosed()){
-            try {
-                if (sList.isEmpty() && i > 5){
-                    break;
-                }
-                Socket clientSocket = serverSocket.accept();
-                Thread newServer = new Thread(new Server(clientSocket , sList));
-                newServer.start();
-            } catch (SocketTimeoutException e){
-                System.out.println("New connection timeout. Trying to reconnect..");
-                if (sList.isEmpty()){
-                    i++;
+        try (ServerSocket serverSocket = new ServerSocket(1337)) {
+            serverSocket.setSoTimeout(5000);
+            List<Socket> sList = new ArrayList<>();
+            int i = 0;
+            while (!serverSocket.isClosed()){
+                try {
+                    if (sList.isEmpty() && i > 5){
+                        break;
+                    }
+                    Socket clientSocket = serverSocket.accept();
+                    Thread newServer = new Thread(new Server(clientSocket, sList));
+                    newServer.start();
+                } catch (SocketTimeoutException e){
+                    System.out.println("New connection timeout. Trying to reconnect..");
+                    if (sList.isEmpty()){
+                        i++;
+                    }
                 }
             }
         }
