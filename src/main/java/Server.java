@@ -12,25 +12,23 @@ public class Server implements Runnable{
 
     private Socket clientSocket;
     private List<Socket> sList;
-    private final Object monitor;
 
-    public Server(Socket clientSocket, List<Socket> sList, Object monitor) {
+    public Server(Socket clientSocket, List<Socket> sList) {
         this.clientSocket = clientSocket;
         this.sList = sList;
-        this.monitor = monitor;
     }
 
     @Override
     public void run() {
         System.out.println("Successfully connected to new client. Opening connection for new possible client..");
-        synchronized (monitor){sList.add(clientSocket);}
+        synchronized (sList){sList.add(clientSocket);}
         try (DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
              DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream())){
             while (!clientSocket.isClosed()){
                 String buf = dis.readUTF();
                 dos.writeUTF(buf);
                 if (buf.equals("Close")){
-                    synchronized (monitor){sList.remove(clientSocket);}
+                    synchronized (sList){sList.remove(clientSocket);}
                     clientSocket.close();
                     System.out.println("Connection is closed.");
                     break;
@@ -40,7 +38,7 @@ public class Server implements Runnable{
             throw new RuntimeException(IOe);
         } finally {
             try {
-                synchronized (monitor){sList.remove(clientSocket);}
+                synchronized (sList){sList.remove(clientSocket);}
                 clientSocket.close();
             } catch (IOException e){
                 throw new RuntimeException(e);
@@ -51,21 +49,24 @@ public class Server implements Runnable{
     public static void main(String[] args) throws IOException{
         try (ServerSocket serverSocket = new ServerSocket(1337)) {
             serverSocket.setSoTimeout(5000);
-            Object monitor = new Object();
             List<Socket> sList = new ArrayList<>();
             int i = 0;
             while (!serverSocket.isClosed()){
                 try {
-                    if (sList.isEmpty() && i > 5){
-                        break;
+                    synchronized (sList){
+                        if (sList.isEmpty() && i > 5){
+                            break;
+                        }
                     }
                     Socket clientSocket = serverSocket.accept();
-                    Thread newServer = new Thread(new Server(clientSocket, sList, monitor));
+                    Thread newServer = new Thread(new Server(clientSocket, sList));
                     newServer.start();
                 } catch (SocketTimeoutException e){
                     System.out.println("New connection timeout. Trying to reconnect..");
-                    if (sList.isEmpty()){
-                        i++;
+                    synchronized (sList) {
+                        if (sList.isEmpty()) {
+                            i++;
+                        }
                     }
                 }
             }
